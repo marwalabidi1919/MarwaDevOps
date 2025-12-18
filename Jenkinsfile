@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "maroi/marwadevops:latest" // Image Docker complète avec ton Docker Hub
+        DOCKER_IMAGE = "maroi/marwadevops:latest"
     }
 
     stages {
@@ -14,31 +14,32 @@ pipeline {
 
         stage('Build Maven') {
             steps {
-                sh 'mvn clean install'
+                // Exécution Maven via WSL
+                bat 'wsl mvn clean install'
             }
         }
 
         stage('Build & Push Docker Image') {
             steps {
                 script {
-                    // Build Docker image
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    // Build Docker image via WSL
+                    bat "wsl docker build -t ${DOCKER_IMAGE} ."
 
-                    // Login Docker (assurez-vous que vos identifiants sont configurés dans Jenkins Credentials)
+                    // Login Docker Hub via credentials Jenkins
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        bat 'wsl bash -c "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"'
                     }
 
                     // Push Docker image
-                    sh "docker push ${DOCKER_IMAGE}"
+                    bat "wsl docker push ${DOCKER_IMAGE}"
                 }
             }
         }
 
         stage('Deploy to Cluster') {
             steps {
-                // Exemple : déploiement sur Kubernetes
-                sh "kubectl apply -f k8s/deployment.yaml"
+                // Déploiement Kubernetes via WSL
+                bat 'wsl kubectl apply -f k8s/deployment.yaml'
             }
         }
     }
